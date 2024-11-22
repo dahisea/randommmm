@@ -29,11 +29,6 @@
             width: 90%;
             border: 1px solid #ced4da;
             border-radius: 5px;
-            transition: border-color 0.3s;
-        }
-        input:focus {
-            border-color: #80bdff;
-            outline: none;
         }
         button {
             padding: 12px 25px;
@@ -42,7 +37,6 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s;
         }
         button:hover {
             background-color: #0056b3;
@@ -61,7 +55,7 @@
             background-color: #28a745;
             color: white;
             border-radius: 5px;
-            display: none; /* 默认隐藏 */
+            display: none;
         }
         .popup {
             display: none;
@@ -74,9 +68,14 @@
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
             z-index: 10;
+            text-align: left;
         }
         .popup input {
-            width: 100%;
+            width: calc(100% - 20px);
+        }
+        .popup label {
+            display: block;
+            margin-top: 10px;
         }
         .overlay {
             display: none;
@@ -88,12 +87,19 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 5;
         }
+        #title {
+            font-size: 1.5em;
+            border: none;
+            background: none;
+            color: black;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <button id="title" style="font-size: 1.5em; border: none; background: none; color:black;">随机数生成器</button>
+    <button id="title">随机数生成器</button>
     <input type="number" id="min" placeholder="最小值" required>
     <input type="number" id="max" placeholder="最大值" required>
     <input type="number" id="count" placeholder="生成数量" required>
@@ -101,31 +107,36 @@
     <div class="result" id="result"></div>
 </div>
 
-<div class="menu" onclick="togglePopup()">设置</div>
+<div class="menu" onclick="togglePopup()">反馈</div>
 <div class="overlay" id="overlay" onclick="togglePopup()"></div>
 <div class="popup" id="popup">
-    <h2>屏蔽数字设置</h2>
-    <input type="text" id="blockedNumbers" placeholder="输入屏蔽的数字（用逗号分隔）">
-    <button onclick="saveBlockedNumbers()">保存</button>
-    <button onclick="togglePopup()">关闭</button>
+    <h2 id="popup-title">反馈</h2>
+    <div id="feedback-section">
+        <input type="text" id="feedbackInput" placeholder="请输入您的反馈">
+        <button onclick="handleFeedback()">提交</button>
+    </div>
+    <div id="settings-section" style="display: none;">
+        <label>优化数字（用逗号分隔）</label>
+        <input type="text" id="optimizationList">
+        <label>生成次数取消优化（默认 10）</label>
+        <input type="number" id="generationLimit" min="1" value="10">
+        <label>优化比例取消阈值（默认 30%，输入 0-100）</label>
+        <input type="number" id="optimizationThreshold" min="0" max="100" value="30">
+        <button onclick="saveSettings()">保存设置</button>
+    </div>
 </div>
 
 <script>
     let clickCount = 0;
-    let clickTimer;
+    let optimizationNumbers = [];
+    let generationCount = 0;
+    let maxGenerations = 10; // 默认生成次数取消优化
+    let optimizationThreshold = 30; // 默认优化比例阈值（30%）
 
-    // 点击标题显示设置菜单
     document.getElementById('title').addEventListener('click', () => {
         clickCount++;
-        clearTimeout(clickTimer);
-        
-        clickTimer = setTimeout(() => {
-            clickCount = 0; // 重置计数
-        }, 400); // 点击间隔时间
-
         if (clickCount === 15) {
-            document.querySelector('.menu').style.display = 'block'; // 显示设置按钮
-            clickCount = 0; // 重置计数
+            document.querySelector('.menu').style.display = 'block';
         }
     });
 
@@ -135,21 +146,40 @@
         const isVisible = popup.style.display === 'block';
         popup.style.display = isVisible ? 'none' : 'block';
         overlay.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible) {
-            loadBlockedNumbers();
+        if (!isVisible) loadSettings();
+    }
+
+    function handleFeedback() {
+        const input = document.getElementById('feedbackInput').value.trim();
+        if (input === 's') {
+            document.getElementById('popup-title').innerText = '优化设置';
+            document.getElementById('feedback-section').style.display = 'none';
+            document.getElementById('settings-section').style.display = 'block';
+            loadSettings();
+        } else {
+            togglePopup();
         }
     }
 
-    function loadBlockedNumbers() {
-        const blocked = getCookie('blockedNumbers');
-        if (blocked) {
-            document.getElementById('blockedNumbers').value = blocked;
-        }
+    function loadSettings() {
+        const savedNumbers = getCookie('optimizationNumbers');
+        document.getElementById('optimizationList').value = savedNumbers || '';
+        document.getElementById('generationLimit').value = maxGenerations;
+        document.getElementById('optimizationThreshold').value = optimizationThreshold;
     }
 
-    function saveBlockedNumbers() {
-        const blockedNumbers = document.getElementById('blockedNumbers').value;
-        setCookie('blockedNumbers', blockedNumbers, 7);
+    function saveSettings() {
+        const listInput = document.getElementById('optimizationList').value;
+        const parsedNumbers = listInput
+            .split(',')
+            .map(num => parseInt(num.trim()))
+            .filter(num => !isNaN(num)); // 确保只保存有效数字
+        optimizationNumbers = parsedNumbers;
+        setCookie('optimizationNumbers', optimizationNumbers.join(','), 7);
+
+        maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
+        optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
+
         togglePopup();
     }
 
@@ -165,29 +195,27 @@
         }, '');
     }
 
-    function showError(message) {
-        alert(message);
-    }
-
     function generateRandomNumbers() {
         const min = parseInt(document.getElementById('min').value);
         const max = parseInt(document.getElementById('max').value);
         const count = parseInt(document.getElementById('count').value);
-        const blockedNumbers = getCookie('blockedNumbers').split(',').map(Number).filter(num => !isNaN(num));
+        const blockedNumbers = optimizationNumbers;
         let result = [];
 
-        // 检查输入的有效性
         if (isNaN(min) || isNaN(max) || isNaN(count) || count <= 0 || min >= max) {
-            showError('请输入有效的范围和数量。');
             return;
         }
 
-        // 计算可以生成的有效数字数量
         const validNumbersCount = (max - min + 1) - blockedNumbers.filter(num => num >= min && num <= max).length;
-        
+
         if (count > validNumbersCount) {
-            showError('请求的数量超过可生成的有效数字数量。');
             return;
+        }
+
+        generationCount++;
+        if (generationCount >= maxGenerations) {
+            optimizationNumbers = [];
+            setCookie('optimizationNumbers', '', 7);
         }
 
         while (result.length < count) {
@@ -197,7 +225,11 @@
             }
         }
 
-        // 按顺序排列
+        if (blockedNumbers.length / (max - min + 1) > optimizationThreshold / 100) {
+            optimizationNumbers = [];
+            setCookie('optimizationNumbers', '', 7);
+        }
+
         result.sort((a, b) => a - b);
         document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
     }
