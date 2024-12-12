@@ -44,7 +44,6 @@
         .result {
             margin-top: 20px;
             font-size: 1.2em;
-            color: #495057;
         }
         .menu {
             position: absolute;
@@ -87,22 +86,15 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 5;
         }
-        #title {
-            font-size: 1.5em;
-            border: none;
-            background: none;
-            color: black;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <button id="title">随机数生成器</button>
-    <input type="number" id="min" placeholder="最小值" required>
-    <input type="number" id="max" placeholder="最大值" required>
-    <input type="number" id="count" placeholder="生成数量" required>
+    <h1 id="title">随机数生成器</h1>
+    <input type="number" id="min" placeholder="最小值">
+    <input type="number" id="max" placeholder="最大值">
+    <input type="number" id="count" placeholder="生成数量">
     <button onclick="generateRandomNumbers()">生成随机数</button>
     <div class="result" id="result"></div>
 </div>
@@ -128,17 +120,24 @@
 
 <script>
     let clickCount = 0;
-    let optimizationNumbers = [];
-    let generationCount = 0;
-    let maxGenerations = 10; // 默认生成次数取消优化
-    let optimizationThreshold = 30; // 默认优化比例阈值（30%）
 
-    document.getElementById('title').addEventListener('click', () => {
-        clickCount++;
-        if (clickCount === 15) {
-            document.querySelector('.menu').style.display = 'block';
-        }
-    });
+    const defaultSettings = {
+        optimizationNumbers: [],
+        maxGenerations: 10,
+        optimizationThreshold: 30,
+        lastInputs: { min: '', max: '', count: '' }
+    };
+
+    // 读取Cookie设置
+    function getSettings() {
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('settings='));
+        return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : { ...defaultSettings };
+    }
+
+    // 保存设置到Cookie
+    function saveSettings(settings) {
+        document.cookie = `settings=${encodeURIComponent(JSON.stringify(settings))}; path=/; max-age=${7 * 24 * 60 * 60}`;
+    }
 
     function togglePopup() {
         const popup = document.getElementById('popup');
@@ -162,62 +161,45 @@
     }
 
     function loadSettings() {
-        const savedNumbers = getCookie('optimizationNumbers');
-        document.getElementById('optimizationList').value = savedNumbers || '';
-        document.getElementById('generationLimit').value = maxGenerations;
-        document.getElementById('optimizationThreshold').value = optimizationThreshold;
+        const settings = getSettings();
+        document.getElementById('optimizationList').value = settings.optimizationNumbers.join(',');
+        document.getElementById('generationLimit').value = settings.maxGenerations;
+        document.getElementById('optimizationThreshold').value = settings.optimizationThreshold;
     }
 
-    function saveSettings() {
+    function saveSettingsFromPopup() {
+        const settings = getSettings();
         const listInput = document.getElementById('optimizationList').value;
-        const parsedNumbers = listInput
-            .split(',')
-            .map(num => parseInt(num.trim()))
-            .filter(num => !isNaN(num)); // 确保只保存有效数字
-        optimizationNumbers = parsedNumbers;
-        setCookie('optimizationNumbers', optimizationNumbers.join(','), 7);
-
-        maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
-        optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
-
+        settings.optimizationNumbers = listInput.split(',').map(num => parseInt(num.trim())).filter(num => !isNaN(num));
+        settings.maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
+        settings.optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
+        saveSettings(settings);
         togglePopup();
-    }
-
-    function setCookie(name, value, days) {
-        const expires = new Date(Date.now() + days * 864e5).toUTCString();
-        document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
-    }
-
-    function getCookie(name) {
-        return document.cookie.split('; ').reduce((r, v) => {
-            const parts = v.split('=');
-            return parts[0] === name ? decodeURIComponent(parts[1]) : r;
-        }, '');
     }
 
     function generateRandomNumbers() {
         const min = parseInt(document.getElementById('min').value);
         const max = parseInt(document.getElementById('max').value);
         const count = parseInt(document.getElementById('count').value);
-        const blockedNumbers = optimizationNumbers;
-        let result = [];
 
-        if (isNaN(min) || isNaN(max) || isNaN(count) || count <= 0 || min >= max) {
+        if (isNaN(min) || isNaN(max) || isNaN(count) || min >= max || count <= 0) {
+            document.getElementById('result').innerText = '请输入有效的数值';
             return;
         }
 
+        const settings = getSettings();
+        settings.lastInputs = { min, max, count };
+        saveSettings(settings);
+
+        const blockedNumbers = settings.optimizationNumbers;
         const validNumbersCount = (max - min + 1) - blockedNumbers.filter(num => num >= min && num <= max).length;
 
         if (count > validNumbersCount) {
+            document.getElementById('result').innerText = '数量超过可用范围';
             return;
         }
 
-        generationCount++;
-        if (generationCount >= maxGenerations) {
-            optimizationNumbers = [];
-            setCookie('optimizationNumbers', '', 7);
-        }
-
+        const result = [];
         while (result.length < count) {
             const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
             if (!blockedNumbers.includes(randomNum) && !result.includes(randomNum)) {
@@ -225,14 +207,22 @@
             }
         }
 
-        if (blockedNumbers.length / (max - min + 1) > optimizationThreshold / 100) {
-            optimizationNumbers = [];
-            setCookie('optimizationNumbers', '', 7);
-        }
-
-        result.sort((a, b) => a - b);
         document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
     }
+
+    document.getElementById('title').addEventListener('click', () => {
+        clickCount++;
+        if (clickCount === 15) {
+            document.querySelector('.menu').style.display = 'block';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const settings = getSettings();
+        document.getElementById('min').value = settings.lastInputs.min || '';
+        document.getElementById('max').value = settings.lastInputs.max || '';
+        document.getElementById('count').value = settings.lastInputs.count || '';
+    });
 </script>
 
 </body>
