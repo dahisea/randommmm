@@ -83,13 +83,14 @@
     let optimizationNumbers = []; // 屏蔽数字列表
     let skipBlocking = false; // 是否跳过屏蔽规则（当屏蔽比例超过阈值时）
 
+    // 切换设置菜单显示
     function toggleSettings() {
         const settings = document.querySelector('.hidden-settings');
         settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
     }
 
+    // 保存设置
     function saveSettings() {
-        // 保存用户设置到单独的 Cookie
         const listInput = document.getElementById('optimizationList').value;
         optimizationNumbers = listInput.split(',')
             .map(num => parseInt(num.trim()))
@@ -101,12 +102,10 @@
 
         optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
         document.cookie = `optimizationThreshold=${optimizationThreshold}; path=/`;
-
-        M.toast({ html: '设置已保存', classes: 'rounded' });
     }
 
+    // 加载设置
     function loadSettings() {
-        // 从 Cookie 加载设置
         optimizationNumbers = (getCookie('optimizationNumbers') || '').split(',')
             .map(num => parseInt(num.trim()))
             .filter(num => !isNaN(num));
@@ -118,26 +117,26 @@
         document.getElementById('optimizationThreshold').value = optimizationThreshold;
     }
 
+    // 生成随机数
     function generateRandomNumbers() {
         const min = parseInt(document.getElementById('min').value);
         const max = parseInt(document.getElementById('max').value);
         const count = parseInt(document.getElementById('count').value);
 
         if (isNaN(min) || isNaN(max) || isNaN(count) || min >= max || count <= 0) {
-            M.toast({ html: '输入无效', classes: 'rounded red' });
             return;
         }
 
-        const totalNumbers = max - min + 1; // 总范围数量
+        const totalNumbers = max - min + 1;
         const blockedInRange = optimizationNumbers.filter(num => num >= min && num <= max);
         const blockedRatio = (blockedInRange.length / totalNumbers) * 100;
 
         if (blockedRatio > optimizationThreshold && !skipBlocking) {
-            skipBlocking = true; // 暂停屏蔽规则，仅限当前会话
+            skipBlocking = true; // 屏蔽规则暂停，仅限当前页面
         }
 
         const availableNumbers = skipBlocking
-            ? totalNumbers // 跳过屏蔽时，所有数字可用
+            ? totalNumbers
             : totalNumbers - blockedInRange.length;
 
         if (count > availableNumbers) {
@@ -160,10 +159,10 @@
         }
 
         result.sort((a, b) => a - b);
-        const status = skipBlocking ? '(屏蔽规则已暂停)' : '';
-        document.getElementById('result').innerText = `生成的随机数: ${result.join(', ')} ${status}`;
+        document.getElementById('result').innerText = `生成的随机数: ${result.join(', ')}`;
     }
 
+    // 读取 Cookie 值
     function getCookie(name) {
         return document.cookie.split('; ').reduce((r, v) => {
             const parts = v.split('=');
@@ -171,7 +170,6 @@
         }, '');
     }
 
-    // 初始化加载设置
     document.addEventListener('DOMContentLoaded', loadSettings);
 </script>
 
