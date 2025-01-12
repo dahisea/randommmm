@@ -121,7 +121,6 @@
 <script>
     let clickCount = 0;
 
-    // 通用的 Cookie 操作函数
     function getCookie(name) {
         const cookie = document.cookie.split('; ').find(row => row.startsWith(name + '='));
         return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : null;
@@ -199,22 +198,32 @@
         saveSettings(settings);
 
         const blockedNumbers = settings.optimizationNumbers;
-        const validNumbersCount = (max - min + 1) - blockedNumbers.filter(num => num >= min && num <= max).length;
+        const totalNumbers = max - min + 1;
 
-        if (count > validNumbersCount) {
-            document.getElementById('result').innerText = '数量超过可用范围';
-            return;
-        }
+        // 判断是否取消优化
+        if (
+            count > settings.maxGenerations || 
+            (blockedNumbers.length / totalNumbers) * 100 < settings.optimizationThreshold
+        ) {
+            document.getElementById('result').innerText = '优化已取消，直接生成随机数。';
+        } else {
+            const validNumbers = Array.from({ length: totalNumbers }, (_, i) => min + i)
+                .filter(num => !blockedNumbers.includes(num));
 
-        const result = [];
-        while (result.length < count) {
-            const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
-            if (!blockedNumbers.includes(randomNum) && !result.includes(randomNum)) {
-                result.push(randomNum);
+            if (count > validNumbers.length) {
+                document.getElementById('result').innerText = '数量超过可用范围';
+                return;
             }
-        }
 
-        document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
+            const result = [];
+            while (result.length < count) {
+                const randomNum = validNumbers[Math.floor(Math.random() * validNumbers.length)];
+                if (!result.includes(randomNum)) {
+                    result.push(randomNum);
+                }
+            }
+            document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
+        }
     }
 
     document.getElementById('title').addEventListener('click', () => {
