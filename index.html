@@ -6,145 +6,125 @@
     <title>随机数生成器</title>
     <!-- 引入 Materialize CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
-    <!-- 引入 Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         body {
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            justify-content: center;
+            height: 100vh;
             margin: 0;
-            background-color: #f5f5f5;
         }
         .container {
-            max-width: 600px;
-            width: 90%;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        .result {
-            margin-top: 20px;
-            font-size: 1.2em;
+            padding: 30px;
         }
         .hidden-menu {
             display: none;
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
         }
     </style>
 </head>
-<body>
+<body class="grey lighten-4">
 
-<div class="container">
-    <h5 class="center-align" id="title">随机数生成器</h5>
-    <div class="input-field">
-        <input type="number" id="min" placeholder="最小值">
-        <label for="min">最小值</label>
+<div class="container white z-depth-2">
+    <h4 class="center-align">随机数生成器</h4>
+    <div class="row">
+        <div class="input-field col s12">
+            <input id="min" type="number">
+            <label for="min">最小值</label>
+        </div>
+        <div class="input-field col s12">
+            <input id="max" type="number">
+            <label for="max">最大值</label>
+        </div>
+        <div class="input-field col s12">
+            <input id="count" type="number">
+            <label for="count">生成数量</label>
+        </div>
+        <div class="col s12 center-align">
+            <button class="btn waves-effect waves-light blue" onclick="generateRandomNumbers()">生成随机数</button>
+        </div>
     </div>
-    <div class="input-field">
-        <input type="number" id="max" placeholder="最大值">
-        <label for="max">最大值</label>
-    </div>
-    <div class="input-field">
-        <input type="number" id="count" placeholder="生成数量">
-        <label for="count">生成数量</label>
-    </div>
-    <button class="btn waves-effect waves-light full-width" onclick="generateRandomNumbers()">生成随机数</button>
-    <div class="result center-align" id="result"></div>
+    <div class="result center-align" id="result" style="margin-top: 20px;"></div>
 </div>
 
-<!-- 隐藏菜单按钮 -->
-<div class="fixed-action-btn hidden-menu" id="menu">
-    <a class="btn-floating btn-large green" onclick="togglePopup()">
-        <i class="large material-icons">settings</i>
+<!-- 隐藏的菜单按钮 -->
+<div class="fixed-action-btn hidden-menu">
+    <a class="btn-floating btn-large green">
+        <i class="material-icons">settings</i>
     </a>
 </div>
 
-<!-- 模态框弹窗 -->
-<div id="popup" class="modal">
+<!-- 设置弹窗 -->
+<div id="settingsModal" class="modal">
     <div class="modal-content">
-        <h5>反馈或设置</h5>
-        <div id="feedback-section">
-            <div class="input-field">
-                <input type="text" id="feedbackInput" placeholder="请输入您的反馈">
-                <label for="feedbackInput">反馈</label>
-            </div>
-            <button class="btn waves-effect waves-light" onclick="handleFeedback()">提交反馈</button>
+        <h4>优化设置</h4>
+        <div class="input-field">
+            <input id="optimizationList" type="text">
+            <label for="optimizationList">优化数字（用逗号分隔）</label>
         </div>
-        <div id="settings-section" style="display: none;">
-            <p>生成次数取消屏蔽：<strong>10</strong></p>
-            <p>优化比例取消阈值：<strong>30%</strong></p>
-            <p>阻止的数字：<strong id="blockedNumbers">无</strong></p>
+        <div class="input-field">
+            <input id="generationLimit" type="number" value="10" disabled>
+            <label for="generationLimit">生成次数取消优化（固定 10）</label>
         </div>
-    </div>
-    <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">关闭</a>
+        <div class="input-field">
+            <input id="optimizationThreshold" type="number" value="30" disabled>
+            <label for="optimizationThreshold">优化比例取消阈值（固定 30%）</label>
+        </div>
+        <div class="center-align">
+            <button class="btn blue" onclick="saveSettings()">保存设置</button>
+        </div>
     </div>
 </div>
 
-<!-- 引入 Materialize JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<!-- 遮罩 -->
+<div class="overlay" id="overlay"></div>
 
+<!-- 引入 Materialize JS 和依赖 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 <script>
-    // 默认设置
-    const settings = {
+    let clickCount = 0;
+    const settingsModal = document.getElementById('settingsModal');
+    const hiddenMenu = document.querySelector('.hidden-menu');
+    const modalInstance = M.Modal.init(settingsModal, { dismissible: false });
+
+    const defaultSettings = {
         optimizationNumbers: [],
         maxGenerations: 10,
-        optimizationThreshold: 30, // 百分比阈值
-        clickUnlock: 15
+        optimizationThreshold: 30,
+        lastInputs: { min: '', max: '', count: '' }
     };
 
-    let clickCount = 0;
-
-    // 初始化 Materialize 模态框
-    document.addEventListener('DOMContentLoaded', function() {
-        const modals = document.querySelectorAll('.modal');
-        M.Modal.init(modals);
-    });
-
-    // 显示或隐藏设置弹窗
-    function togglePopup() {
-        const modal = document.querySelector('#popup');
-        const instance = M.Modal.getInstance(modal);
-        instance.open();
-        loadSettings();
+    // 获取设置
+    function getSettings() {
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('settings='));
+        return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : { ...defaultSettings };
     }
 
-    // 处理用户反馈或设置
-    function handleFeedback() {
-        const feedback = document.getElementById('feedbackInput').value.trim();
-        if (feedback === 's') {
-            document.getElementById('feedback-section').style.display = 'none';
-            document.getElementById('settings-section').style.display = 'block';
-            document.getElementById('blockedNumbers').innerText = settings.optimizationNumbers.join(', ') || '无';
-        }
+    // 保存设置
+    function saveSettings(settings = {}) {
+        const mergedSettings = { ...getSettings(), ...settings };
+        document.cookie = `settings=${encodeURIComponent(JSON.stringify(mergedSettings))}; path=/;`;
     }
 
-    // 随机数生成逻辑
     function generateRandomNumbers() {
         const min = parseInt(document.getElementById('min').value);
         const max = parseInt(document.getElementById('max').value);
         const count = parseInt(document.getElementById('count').value);
 
         if (isNaN(min) || isNaN(max) || isNaN(count) || min >= max || count <= 0) {
-            document.getElementById('result').innerText = '请输入有效的数值';
+            M.toast({ html: '请输入有效的数值', classes: 'red' });
             return;
         }
 
-        // 计算可用数字范围和比例
-        const blockedNumbers = settings.optimizationNumbers.filter(num => num >= min && num <= max);
-        const totalNumbers = max - min + 1;
-        const availableNumbers = totalNumbers - blockedNumbers.length;
-        const availablePercentage = (availableNumbers / totalNumbers) * 100;
+        const settings = getSettings();
+        settings.lastInputs = { min, max, count };
+        saveSettings(settings);
 
-        // 检查比例阈值
-        if (availablePercentage < settings.optimizationThreshold || count > settings.maxGenerations) {
-            document.getElementById('result').innerText = '可用数字不足或超过生成限制';
+        const blockedNumbers = settings.optimizationNumbers;
+        const validNumbersCount = (max - min + 1) - blockedNumbers.filter(num => num >= min && num <= max).length;
+
+        if (count > validNumbersCount) {
+            document.getElementById('result').innerText = '数量超过可用范围';
             return;
         }
 
@@ -159,14 +139,20 @@
         document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
     }
 
-    // 点击次数检测，显示隐藏菜单
-    document.getElementById('title').addEventListener('click', () => {
-        clickCount++;
-        if (clickCount === settings.clickUnlock) {
-            document.getElementById('menu').classList.remove('hidden-menu');
-        }
+    document.addEventListener('DOMContentLoaded', () => {
+        // 点击标题 15 次显示隐藏按钮
+        document.querySelector('h4').addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 15) {
+                hiddenMenu.style.display = 'block';
+            }
+        });
+
+        const settings = getSettings();
+        document.getElementById('min').value = settings.lastInputs.min || '';
+        document.getElementById('max').value = settings.lastInputs.max || '';
+        document.getElementById('count').value = settings.lastInputs.count || '';
     });
 </script>
-
 </body>
 </html>
