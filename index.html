@@ -30,6 +30,7 @@
             text-align: center;
         }
         .settings-title {
+            display: none;
             cursor: pointer;
             color: #007bff;
         }
@@ -38,7 +39,7 @@
 <body>
 
 <div class="container">
-    <h5 class="center-align">随机数生成器</h5>
+    <h5 id="title" class="center-align">随机数生成器</h5>
     <div class="input-field">
         <input id="min" type="number" placeholder="最小值">
     </div>
@@ -52,7 +53,7 @@
         <button class="btn waves-effect waves-light" onclick="generateRandomNumbers()">生成随机数</button>
     </div>
     <div class="result" id="result"></div>
-    <div class="center-align settings-title" onclick="openSettings()">⚙️ 优化设置</div>
+    <div class="center-align settings-title" id="settingsTitle" onclick="openSettings()">⚙️ 优化设置</div>
 </div>
 
 <!-- 优化设置模态框 -->
@@ -90,6 +91,7 @@
         optimizationThreshold: 30
     };
     let generationCount = 0;
+    let clickCount = 0; // 记录标题点击次数
 
     // 获取 Cookie 值
     function getCookie(name) {
@@ -123,6 +125,14 @@
             setCookie(key, value);
         }
     }
+
+    // 显示设置菜单
+    document.getElementById('title').addEventListener('click', function() {
+        clickCount++;
+        if (clickCount === 15) {
+            document.getElementById('settingsTitle').style.display = 'block';
+        }
+    });
 
     // 打开设置模态框并加载现有设置
     function openSettings() {
@@ -163,25 +173,22 @@
         const validNumbersCount = totalNumbers - blockedNumbers.filter(num => num >= min && num <= max).length;
 
         let skipBlocking = false;
-        let message = '';
 
         // 检查屏蔽比例是否超过阈值
         if ((blockedNumbers.length / totalNumbers) > (settings.optimizationThreshold / 100)) {
             skipBlocking = true;
-            message = '屏蔽比例超过阈值，暂停屏蔽规则！';
         }
 
         // 检查生成次数是否超限
         generationCount++;
         if (generationCount > settings.maxGenerations) {
             skipBlocking = true;
-            message = '生成次数超限，暂停屏蔽规则！';
             generationCount = 0; // 重置生成次数
         }
 
         const activeBlockedNumbers = skipBlocking ? [] : blockedNumbers;
 
-        if (count > validNumbersCount) {
+        if (count > validNumbersCount && !skipBlocking) {
             document.getElementById('result').innerText = '数量超过可用范围';
             return;
         }
@@ -195,7 +202,7 @@
         }
 
         result.sort((a, b) => a - b);
-        document.getElementById('result').innerText = (message ? message + '\n' : '') + '生成的随机数: ' + result.join(', ');
+        document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
     }
 </script>
 
