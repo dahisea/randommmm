@@ -4,157 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>随机数生成器</title>
-    <!-- 引入 Material Design 的 CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
     <style>
         body {
+            font-family: Arial, sans-serif;
+            background-color: #e9ecef;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            justify-content: center;
+            height: 100vh;
             margin: 0;
-            background-color: #f5f5f5;
+            position: relative;
         }
         .container {
-            width: 90%;
-            max-width: 500px;
             background: white;
-            padding: 20px;
+            padding: 30px;
             border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 12px;
+            width: 90%;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
         }
         .result {
             margin-top: 20px;
             font-size: 1.2em;
-            text-align: center;
+            color: #495057;
         }
-        .settings-title {
+        .menu, .overlay, .popup {
             display: none;
+        }
+        .menu {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
             cursor: pointer;
-            color: #007bff;
+        }
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            text-align: left;
+        }
+        .popup label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        .popup input {
+            width: calc(100% - 20px);
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 5;
         }
     </style>
 </head>
 <body>
-
 <div class="container">
-    <h5 id="title" class="center-align">随机数生成器</h5>
-    <div class="input-field">
-        <input id="min" type="number" placeholder="最小值">
-    </div>
-    <div class="input-field">
-        <input id="max" type="number" placeholder="最大值">
-    </div>
-    <div class="input-field">
-        <input id="count" type="number" placeholder="生成数量">
-    </div>
-    <div class="center-align">
-        <button class="btn waves-effect waves-light" onclick="generateRandomNumbers()">生成随机数</button>
-    </div>
+    <button id="title">随机数生成器</button>
+    <input type="number" id="min" placeholder="最小值" required>
+    <input type="number" id="max" placeholder="最大值" required>
+    <input type="number" id="count" placeholder="生成数量" required>
+    <button onclick="generateRandomNumbers()">生成随机数</button>
     <div class="result" id="result"></div>
-    <div class="center-align settings-title" id="settingsTitle" onclick="openSettings()">⚙️ 优化设置</div>
 </div>
 
-<!-- 优化设置模态框 -->
-<div id="settingsModal" class="modal">
-    <div class="modal-content">
-        <h5>优化设置</h5>
-        <div class="input-field">
-            <input id="optimizationList" type="text" placeholder="屏蔽数字 (用逗号分隔)">
-        </div>
-        <div class="input-field">
-            <input id="generationLimit" type="number" min="1" placeholder="生成次数取消屏蔽 (默认 10)">
-        </div>
-        <div class="input-field">
-            <input id="optimizationThreshold" type="number" min="0" max="100" placeholder="屏蔽比例取消阈值 (默认 30)">
-        </div>
-    </div>
-    <div class="modal-footer">
-        <button class="btn waves-effect waves-light modal-close" onclick="saveSettings()">保存设置</button>
-    </div>
+<div class="menu" id="menu" onclick="togglePopup()">设置</div>
+<div class="overlay" id="overlay" onclick="togglePopup()"></div>
+<div class="popup" id="popup">
+    <h2>设置</h2>
+    <label for="generationLimit">生成次数取消屏蔽（默认 10）</label>
+    <input type="number" id="generationLimit" min="1">
+    <label for="optimizationThreshold">屏蔽比例取消阈值（默认 30%）</label>
+    <input type="number" id="optimizationThreshold" min="0" max="100">
+    <button onclick="saveSettings()">保存设置</button>
 </div>
 
-<!-- 引入 Materialize 的 JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 <script>
-    // 初始化 Materialize 的模态框
-    document.addEventListener('DOMContentLoaded', function() {
-        const modals = document.querySelectorAll('.modal');
-        M.Modal.init(modals);
-    });
-
-    // 默认设置
-    const defaultSettings = {
-        optimizationNumbers: [],
-        maxGenerations: 10,
-        optimizationThreshold: 30
-    };
+    let clickCount = 0;
+    let blockedNumbers = [3, 7, 13]; // 示例屏蔽数字
+    let skipBlocking = false;
     let generationCount = 0;
-    let clickCount = 0; // 记录标题点击次数
+    let maxGenerations = 10; // 默认生成次数取消屏蔽
+    let optimizationThreshold = 30; // 默认屏蔽比例阈值（百分比）
 
-    // 获取 Cookie 值
-    function getCookie(name) {
-        const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
-            const [key, value] = cookie.split('=');
-            acc[key] = decodeURIComponent(value);
-            return acc;
-        }, {});
-        return cookies[name] || null;
-    }
-
-    // 设置 Cookie
-    function setCookie(name, value) {
-        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
-    }
-
-    // 获取设置
-    function getSettings() {
-        return {
-            optimizationNumbers: (getCookie('optimizationNumbers') || '').split(',').filter(Boolean).map(Number),
-            maxGenerations: parseInt(getCookie('maxGenerations')) || defaultSettings.maxGenerations,
-            optimizationThreshold: parseInt(getCookie('optimizationThreshold')) || defaultSettings.optimizationThreshold
-        };
-    }
-
-    // 保存单个设置
-    function saveSetting(key, value) {
-        if (Array.isArray(value)) {
-            setCookie(key, value.join(','));
-        } else {
-            setCookie(key, value);
-        }
-    }
-
-    // 显示设置菜单
-    document.getElementById('title').addEventListener('click', function() {
+    document.getElementById('title').addEventListener('click', () => {
         clickCount++;
         if (clickCount === 15) {
-            document.getElementById('settingsTitle').style.display = 'block';
+            document.getElementById('menu').style.display = 'block';
         }
     });
 
-    // 打开设置模态框并加载现有设置
-    function openSettings() {
-        const settings = getSettings();
-        document.getElementById('optimizationList').value = settings.optimizationNumbers.join(',');
-        document.getElementById('generationLimit').value = settings.maxGenerations;
-        document.getElementById('optimizationThreshold').value = settings.optimizationThreshold;
-        const modal = M.Modal.getInstance(document.getElementById('settingsModal'));
-        modal.open();
+    function togglePopup() {
+        const popup = document.getElementById('popup');
+        const overlay = document.getElementById('overlay');
+        const isVisible = popup.style.display === 'block';
+        popup.style.display = isVisible ? 'none' : 'block';
+        overlay.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) loadSettings();
     }
 
-    // 保存设置到 Cookie
-    function saveSettings() {
-        const optimizationList = document.getElementById('optimizationList').value.split(',')
-            .map(num => parseInt(num.trim()))
-            .filter(num => !isNaN(num));
-        const generationLimit = parseInt(document.getElementById('generationLimit').value) || defaultSettings.maxGenerations;
-        const optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || defaultSettings.optimizationThreshold;
+    function loadSettings() {
+        maxGenerations = parseInt(getCookie('generationLimit')) || 10;
+        optimizationThreshold = parseInt(getCookie('optimizationThreshold')) || 30;
+        document.getElementById('generationLimit').value = maxGenerations;
+        document.getElementById('optimizationThreshold').value = optimizationThreshold;
+    }
 
-        saveSetting('optimizationNumbers', optimizationList);
-        saveSetting('maxGenerations', generationLimit);
-        saveSetting('optimizationThreshold', optimizationThreshold);
+    function saveSettings() {
+        maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
+        optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
+        setCookie('generationLimit', maxGenerations);
+        setCookie('optimizationThreshold', optimizationThreshold);
+        togglePopup();
+    }
+
+    function setCookie(name, value) {
+        document.cookie = `${name}=${value}; path=/`;
+    }
+
+    function getCookie(name) {
+        return document.cookie.split('; ').reduce((r, v) => {
+            const parts = v.split('=');
+            return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+        }, '');
     }
 
     function generateRandomNumbers() {
@@ -162,47 +162,38 @@
         const max = parseInt(document.getElementById('max').value);
         const count = parseInt(document.getElementById('count').value);
 
-        if (isNaN(min) || isNaN(max) || isNaN(count) || min >= max || count <= 0) {
-            document.getElementById('result').innerText = '请输入有效的数值';
+        if (isNaN(min) || isNaN(max) || isNaN(count) || count <= 0 || min >= max) {
             return;
         }
 
-        const settings = getSettings();
-        const blockedNumbers = settings.optimizationNumbers;
         const totalNumbers = max - min + 1;
-
-        // 判断屏蔽比例
         const blockedRatio = (blockedNumbers.filter(num => num >= min && num <= max).length / totalNumbers) * 100;
-        const skipBlocking = blockedRatio > settings.optimizationThreshold;
 
-        // 判断生成次数
-        generationCount++;
-        if (generationCount > settings.maxGenerations) {
-            generationCount = 0; // 重置生成次数
+        if (blockedRatio > optimizationThreshold) {
             skipBlocking = true;
+        } else {
+            skipBlocking = false;
         }
 
         const activeBlockedNumbers = skipBlocking ? [] : blockedNumbers;
+        let result = [];
+        generationCount++;
 
-        const validNumbersCount = totalNumbers - activeBlockedNumbers.filter(num => num >= min && num <= max).length;
-
-        if (count > validNumbersCount) {
-            document.getElementById('result').innerText = '数量超过可用范围';
-            return;
-        }
-
-        const result = [];
         while (result.length < count) {
-            const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+            const randomNum = Math.floor(Math.random() * totalNumbers) + min;
             if (!activeBlockedNumbers.includes(randomNum) && !result.includes(randomNum)) {
                 result.push(randomNum);
             }
+        }
+
+        if (generationCount > maxGenerations) {
+            skipBlocking = false;
+            generationCount = 0;
         }
 
         result.sort((a, b) => a - b);
         document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
     }
 </script>
-
 </body>
 </html>
