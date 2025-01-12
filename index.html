@@ -131,9 +131,17 @@
         const blockedInRange = optimizationNumbers.filter(num => num >= min && num <= max);
         const blockedRatio = (blockedInRange.length / totalNumbers) * 100;
 
-        const skipBlocking = blockedRatio > optimizationThreshold || generationCount >= maxGenerations;
+        if (blockedRatio > optimizationThreshold) {
+            document.getElementById('result').innerText = '屏蔽比例超出设定阈值，暂停屏蔽规则';
+            return;
+        }
 
-        const activeBlockedNumbers = skipBlocking ? [] : optimizationNumbers;
+        const availableNumbers = totalNumbers - blockedInRange.length;
+
+        if (count > availableNumbers) {
+            document.getElementById('result').innerText = '已超出范围，无法生成足够的随机数';
+            return;
+        }
 
         generationCount++;
         if (generationCount > maxGenerations) {
@@ -143,7 +151,7 @@
         let result = [];
         while (result.length < count) {
             const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
-            if (!activeBlockedNumbers.includes(randomNum) && !result.includes(randomNum)) {
+            if (!blockedInRange.includes(randomNum) && !result.includes(randomNum)) {
                 result.push(randomNum);
             }
         }
