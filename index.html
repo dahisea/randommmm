@@ -77,10 +77,10 @@
 </div>
 
 <script>
-    let generationCount = 0;
-    let maxGenerations = 10;
-    let optimizationThreshold = 30;
-    let optimizationNumbers = [];
+    let generationCount = 0; // 当前生成次数
+    let maxGenerations = 10; // 默认屏蔽次数取消限制
+    let optimizationThreshold = 30; // 默认屏蔽比例阈值（百分比）
+    let optimizationNumbers = []; // 屏蔽数字列表
 
     function toggleSettings() {
         const settings = document.querySelector('.hidden-settings');
@@ -127,7 +127,7 @@
             return;
         }
 
-        const totalNumbers = max - min + 1;
+        const totalNumbers = max - min + 1; // 总范围数量
         const blockedInRange = optimizationNumbers.filter(num => num >= min && num <= max);
         const blockedRatio = (blockedInRange.length / totalNumbers) * 100;
 
@@ -137,7 +137,7 @@
 
         generationCount++;
         if (generationCount > maxGenerations) {
-            generationCount = 0;
+            generationCount = 0; // 重置计数
         }
 
         let result = [];
