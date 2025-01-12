@@ -132,8 +132,8 @@
         const blockedInRange = optimizationNumbers.filter(num => num >= min && num <= max);
         const blockedRatio = (blockedInRange.length / totalNumbers) * 100;
 
-        if (blockedRatio > optimizationThreshold) {
-            skipBlocking = true; // 暂停屏蔽规则
+        if (blockedRatio > optimizationThreshold && !skipBlocking) {
+            skipBlocking = true; // 暂停屏蔽规则，仅限当前会话
         }
 
         const availableNumbers = skipBlocking
@@ -142,7 +142,6 @@
 
         if (count > availableNumbers) {
             document.getElementById('result').innerText = '已超出范围，无法生成足够的随机数';
-            skipBlocking = false; // 恢复屏蔽规则
             return;
         }
 
