@@ -45,53 +45,12 @@
             margin-top: 20px;
             font-size: 1.2em;
         }
-        .menu {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            cursor: pointer;
-            padding: 10px;
-            background-color: #28a745;
-            color: white;
-            border-radius: 5px;
-            display: none;
-        }
-        .popup {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-            text-align: left;
-        }
-        .popup input {
-            width: calc(100% - 20px);
-        }
-        .popup label {
-            display: block;
-            margin-top: 10px;
-        }
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 5;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 id="title">随机数生成器</h1>
+    <h1>随机数生成器</h1>
     <input type="number" id="min" placeholder="最小值">
     <input type="number" id="max" placeholder="最大值">
     <input type="number" id="count" placeholder="生成数量">
@@ -99,90 +58,25 @@
     <div class="result" id="result"></div>
 </div>
 
-<div class="menu" onclick="togglePopup()">反馈</div>
-<div class="overlay" id="overlay" onclick="togglePopup()"></div>
-<div class="popup" id="popup">
-    <h2 id="popup-title">反馈</h2>
-    <div id="feedback-section">
-        <input type="text" id="feedbackInput" placeholder="请输入您的反馈">
-        <button onclick="handleFeedback()">提交</button>
-    </div>
-    <div id="settings-section" style="display: none;">
-        <label>优化数字（用逗号分隔）</label>
-        <input type="text" id="optimizationList">
-        <label>生成次数取消优化（默认 10）</label>
-        <input type="number" id="generationLimit" min="1" value="10">
-        <label>优化比例取消阈值（默认 30%，输入 0-100）</label>
-        <input type="number" id="optimizationThreshold" min="0" max="100" value="30">
-        <button onclick="saveSettingsFromPopup()">保存设置</button>
-    </div>
-</div>
-
 <script>
-    let clickCount = 0;
-
-    function getCookie(name) {
-        const cookie = document.cookie.split('; ').find(row => row.startsWith(name + '='));
-        return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : null;
-    }
-
-    function setCookie(name, value, maxAge = 315360000) {
-        document.cookie = `${name}=${encodeURIComponent(JSON.stringify(value))}; path=/; max-age=${maxAge}`;
-    }
-
     const defaultSettings = {
         optimizationNumbers: [],
         maxGenerations: 10,
         optimizationThreshold: 30,
-        lastInputs: { min: '', max: '', count: '' }
     };
 
+    // 获取当前设置
     function getSettings() {
-        return getCookie('settings') || { ...defaultSettings };
+        const cookie = document.cookie.split('; ').find(row => row.startsWith('settings='));
+        return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : { ...defaultSettings };
     }
 
+    // 保存设置
     function saveSettings(settings) {
-        setCookie('settings', settings);
+        document.cookie = `settings=${encodeURIComponent(JSON.stringify(settings))}; path=/; max-age=315360000`;
     }
 
-    function togglePopup() {
-        const popup = document.getElementById('popup');
-        const overlay = document.getElementById('overlay');
-        const isVisible = popup.style.display === 'block';
-        popup.style.display = isVisible ? 'none' : 'block';
-        overlay.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible) loadSettings();
-    }
-
-    function handleFeedback() {
-        const input = document.getElementById('feedbackInput').value.trim();
-        if (input === 's') {
-            document.getElementById('popup-title').innerText = '优化设置';
-            document.getElementById('feedback-section').style.display = 'none';
-            document.getElementById('settings-section').style.display = 'block';
-            loadSettings();
-        } else {
-            togglePopup();
-        }
-    }
-
-    function loadSettings() {
-        const settings = getSettings();
-        document.getElementById('optimizationList').value = settings.optimizationNumbers.join(',');
-        document.getElementById('generationLimit').value = settings.maxGenerations;
-        document.getElementById('optimizationThreshold').value = settings.optimizationThreshold;
-    }
-
-    function saveSettingsFromPopup() {
-        const settings = getSettings();
-        const listInput = document.getElementById('optimizationList').value;
-        settings.optimizationNumbers = listInput.split(',').map(num => parseInt(num.trim())).filter(num => !isNaN(num));
-        settings.maxGenerations = parseInt(document.getElementById('generationLimit').value) || defaultSettings.maxGenerations;
-        settings.optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || defaultSettings.optimizationThreshold;
-        saveSettings(settings);
-        togglePopup();
-    }
-
+    // 生成随机数
     function generateRandomNumbers() {
         const min = parseInt(document.getElementById('min').value);
         const max = parseInt(document.getElementById('max').value);
@@ -194,51 +88,35 @@
         }
 
         const settings = getSettings();
-        settings.lastInputs = { min, max, count };
-        saveSettings(settings);
-
         const blockedNumbers = settings.optimizationNumbers;
         const totalNumbers = max - min + 1;
 
-        // 判断是否取消优化
-        if (
+        // 取消优化的逻辑
+        const cancelOptimization =
             count > settings.maxGenerations || 
-            (blockedNumbers.length / totalNumbers) * 100 < settings.optimizationThreshold
-        ) {
-            document.getElementById('result').innerText = '优化已取消，直接生成随机数。';
-        } else {
-            const validNumbers = Array.from({ length: totalNumbers }, (_, i) => min + i)
-                .filter(num => !blockedNumbers.includes(num));
+            ((blockedNumbers.length / totalNumbers) * 100 < settings.optimizationThreshold);
 
-            if (count > validNumbers.length) {
-                document.getElementById('result').innerText = '数量超过可用范围';
-                return;
-            }
+        let validNumbers = Array.from({ length: totalNumbers }, (_, i) => min + i);
 
-            const result = [];
-            while (result.length < count) {
-                const randomNum = validNumbers[Math.floor(Math.random() * validNumbers.length)];
-                if (!result.includes(randomNum)) {
-                    result.push(randomNum);
-                }
-            }
-            document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
+        if (!cancelOptimization) {
+            validNumbers = validNumbers.filter(num => !blockedNumbers.includes(num));
         }
+
+        if (count > validNumbers.length) {
+            document.getElementById('result').innerText = '数量超过可用范围';
+            return;
+        }
+
+        const result = [];
+        while (result.length < count) {
+            const randomNum = validNumbers[Math.floor(Math.random() * validNumbers.length)];
+            if (!result.includes(randomNum)) {
+                result.push(randomNum);
+            }
+        }
+
+        document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
     }
-
-    document.getElementById('title').addEventListener('click', () => {
-        clickCount++;
-        if (clickCount === 15) {
-            document.querySelector('.menu').style.display = 'block';
-        }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const settings = getSettings();
-        document.getElementById('min').value = settings.lastInputs.min || '';
-        document.getElementById('max').value = settings.lastInputs.max || '';
-        document.getElementById('count').value = settings.lastInputs.count || '';
-    });
 </script>
 
 </body>
