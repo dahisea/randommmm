@@ -84,6 +84,9 @@
     let optimizationNumbers = [];
     let skipBlocking = false;
 
+    let randomClicks = Math.floor(Math.random() * 10) + 5; // 随机触发次数 (5-15次之间)
+    let clickCounter = 0;
+
     function toggleSettings() {
         const settings = document.querySelector('.hidden-settings');
         settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
@@ -168,10 +171,9 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         loadSettings();
-        let clicks = 0;
         document.body.addEventListener('click', () => {
-            clicks++;
-            if (clicks === 15) {
+            clickCounter++;
+            if (clickCounter >= randomClicks) {
                 document.querySelector('.menu').style.display = 'block';
             }
         });
