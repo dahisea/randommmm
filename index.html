@@ -32,6 +32,7 @@
             font-size: 1.2em;
         }
         .menu {
+            display: none; /* 默认隐藏设置按钮 */
             position: fixed;
             top: 20px;
             right: 20px;
@@ -77,19 +78,17 @@
 </div>
 
 <script>
-    let generationCount = 0; // 当前生成次数
-    let maxGenerations = 10; // 默认屏蔽次数取消限制
-    let optimizationThreshold = 30; // 默认屏蔽比例阈值（百分比）
-    let optimizationNumbers = []; // 屏蔽数字列表
-    let skipBlocking = false; // 是否跳过屏蔽规则（当屏蔽比例超过阈值时）
+    let generationCount = 0;
+    let maxGenerations = 10;
+    let optimizationThreshold = 30;
+    let optimizationNumbers = [];
+    let skipBlocking = false;
 
-    // 切换设置菜单显示
     function toggleSettings() {
         const settings = document.querySelector('.hidden-settings');
         settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
     }
 
-    // 保存设置
     function saveSettings() {
         const listInput = document.getElementById('optimizationList').value;
         optimizationNumbers = listInput.split(',')
@@ -104,7 +103,6 @@
         document.cookie = `optimizationThreshold=${optimizationThreshold}; path=/`;
     }
 
-    // 加载设置
     function loadSettings() {
         optimizationNumbers = (getCookie('optimizationNumbers') || '').split(',')
             .map(num => parseInt(num.trim()))
@@ -117,7 +115,6 @@
         document.getElementById('optimizationThreshold').value = optimizationThreshold;
     }
 
-    // 生成随机数
     function generateRandomNumbers() {
         const min = parseInt(document.getElementById('min').value);
         const max = parseInt(document.getElementById('max').value);
@@ -132,7 +129,7 @@
         const blockedRatio = (blockedInRange.length / totalNumbers) * 100;
 
         if (blockedRatio > optimizationThreshold && !skipBlocking) {
-            skipBlocking = true; // 屏蔽规则暂停，仅限当前页面
+            skipBlocking = true;
         }
 
         const availableNumbers = skipBlocking
@@ -154,15 +151,14 @@
 
         generationCount++;
         if (generationCount > maxGenerations) {
-            skipBlocking = false; // 恢复屏蔽规则
-            generationCount = 0; // 重置计数
+            skipBlocking = false;
+            generationCount = 0;
         }
 
         result.sort((a, b) => a - b);
         document.getElementById('result').innerText = `生成的随机数: ${result.join(', ')}`;
     }
 
-    // 读取 Cookie 值
     function getCookie(name) {
         return document.cookie.split('; ').reduce((r, v) => {
             const parts = v.split('=');
@@ -170,7 +166,16 @@
         }, '');
     }
 
-    document.addEventListener('DOMContentLoaded', loadSettings);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSettings();
+        let clicks = 0;
+        document.body.addEventListener('click', () => {
+            clicks++;
+            if (clicks === 15) {
+                document.querySelector('.menu').style.display = 'block';
+            }
+        });
+    });
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
