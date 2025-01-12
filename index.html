@@ -114,12 +114,22 @@
         <input type="number" id="generationLimit" min="1" value="10">
         <label>优化比例取消阈值（默认 30%，输入 0-100）</label>
         <input type="number" id="optimizationThreshold" min="0" max="100" value="30">
-        <button onclick="saveSettings()">保存设置</button>
+        <button onclick="saveSettingsFromPopup()">保存设置</button>
     </div>
 </div>
 
 <script>
     let clickCount = 0;
+
+    // 通用的 Cookie 操作函数
+    function getCookie(name) {
+        const cookie = document.cookie.split('; ').find(row => row.startsWith(name + '='));
+        return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : null;
+    }
+
+    function setCookie(name, value, maxAge = 315360000) {
+        document.cookie = `${name}=${encodeURIComponent(JSON.stringify(value))}; path=/; max-age=${maxAge}`;
+    }
 
     const defaultSettings = {
         optimizationNumbers: [],
@@ -128,15 +138,12 @@
         lastInputs: { min: '', max: '', count: '' }
     };
 
-    // 读取Cookie设置
     function getSettings() {
-        const cookie = document.cookie.split('; ').find(row => row.startsWith('settings='));
-        return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : { ...defaultSettings };
+        return getCookie('settings') || { ...defaultSettings };
     }
-    
-// 保存设置到 Cookie，设置 max-age 为 10 年（接近永久）
+
     function saveSettings(settings) {
-        document.cookie = `settings=${encodeURIComponent(JSON.stringify(settings))}; path=/; max-age=315360000`;
+        setCookie('settings', settings);
     }
 
     function togglePopup() {
@@ -171,8 +178,8 @@
         const settings = getSettings();
         const listInput = document.getElementById('optimizationList').value;
         settings.optimizationNumbers = listInput.split(',').map(num => parseInt(num.trim())).filter(num => !isNaN(num));
-        settings.maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
-        settings.optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
+        settings.maxGenerations = parseInt(document.getElementById('generationLimit').value) || defaultSettings.maxGenerations;
+        settings.optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || defaultSettings.optimizationThreshold;
         saveSettings(settings);
         togglePopup();
     }
