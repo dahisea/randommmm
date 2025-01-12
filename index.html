@@ -69,40 +69,6 @@
             font-size: 14px;
             display: none;
         }
-        .popup {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            padding: 24px;
-            z-index: 1000;
-            width: 90%;
-            max-width: 400px;
-        }
-        .popup h2 {
-            margin-top: 0;
-        }
-        .popup label {
-            display: block;
-            margin-top: 16px;
-        }
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-        }
-        .hidden {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -116,84 +82,21 @@
     <div class="result" id="result"></div>
 </div>
 
-<div class="menu" id="menu" onclick="togglePopup()">设置</div>
-<div class="overlay" id="overlay" onclick="togglePopup()"></div>
-<div class="popup" id="popup">
-    <h2>设置</h2>
-    <label>生成次数取消屏蔽（默认 10）</label>
-    <input type="number" id="generationLimit" min="1">
-    <label>屏蔽比例取消阈值（默认 30%）</label>
-    <input type="number" id="optimizationThreshold" min="0" max="100">
-    <label>屏蔽数字（用逗号分隔）</label>
-    <input type="text" id="blockedNumbers">
-    <button onclick="saveSettings()">保存设置</button>
-</div>
-
 <script>
-    let clickCount = 0;
     let blockedNumbers = [];
     let skipBlocking = false;
     let generationCount = 0;
     let maxGenerations = 10; // 默认生成次数取消屏蔽
     let optimizationThreshold = 30; // 默认屏蔽比例阈值（百分比）
 
-    document.querySelector('.title').addEventListener('click', () => {
-        clickCount++;
-        if (clickCount === 15) {
-            document.getElementById('menu').style.display = 'block';
-        }
-    });
-
-    function togglePopup() {
-        const popup = document.getElementById('popup');
-        const overlay = document.getElementById('overlay');
-        const isVisible = popup.style.display === 'block';
-        popup.style.display = isVisible ? 'none' : 'block';
-        overlay.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible) loadSettings();
-    }
-
-    function loadSettings() {
-        maxGenerations = parseInt(getCookie('generationLimit')) || 10;
-        optimizationThreshold = parseInt(getCookie('optimizationThreshold')) || 30;
-        blockedNumbers = getCookie('blockedNumbers')?.split(',').map(Number) || [];
-
-        document.getElementById('generationLimit').value = maxGenerations;
-        document.getElementById('optimizationThreshold').value = optimizationThreshold;
-        document.getElementById('blockedNumbers').value = blockedNumbers.join(',');
-    }
-
-    function saveSettings() {
-        maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
-        optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
-        blockedNumbers = document.getElementById('blockedNumbers').value
-            .split(',')
-            .map(num => parseInt(num.trim()))
-            .filter(num => !isNaN(num));
-
-        setCookie('generationLimit', maxGenerations);
-        setCookie('optimizationThreshold', optimizationThreshold);
-        setCookie('blockedNumbers', blockedNumbers.join(','));
-        togglePopup();
-    }
-
-    function setCookie(name, value) {
-        document.cookie = `${name}=${value}; path=/`;
-    }
-
-    function getCookie(name) {
-        return document.cookie.split('; ').reduce((r, v) => {
-            const parts = v.split('=');
-            return parts[0] === name ? decodeURIComponent(parts[1]) : r;
-        }, '');
-    }
-
     function generateRandomNumbers() {
         const min = parseInt(document.getElementById('min').value);
         const max = parseInt(document.getElementById('max').value);
         const count = parseInt(document.getElementById('count').value);
 
+        // 输入校验
         if (isNaN(min) || isNaN(max) || isNaN(count) || count <= 0 || min >= max) {
+            document.getElementById('result').innerText = '网络错误';
             return;
         }
 
