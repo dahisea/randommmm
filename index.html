@@ -81,6 +81,7 @@
     let maxGenerations = 10; // 默认屏蔽次数取消限制
     let optimizationThreshold = 30; // 默认屏蔽比例阈值（百分比）
     let optimizationNumbers = []; // 屏蔽数字列表
+    let skipBlocking = false; // 是否跳过屏蔽规则（当屏蔽比例超过阈值时）
 
     function toggleSettings() {
         const settings = document.querySelector('.hidden-settings');
@@ -132,32 +133,36 @@
         const blockedRatio = (blockedInRange.length / totalNumbers) * 100;
 
         if (blockedRatio > optimizationThreshold) {
-            document.getElementById('result').innerText = '屏蔽比例超出设定阈值，暂停屏蔽规则';
-            return;
+            skipBlocking = true; // 暂停屏蔽规则
         }
 
-        const availableNumbers = totalNumbers - blockedInRange.length;
+        const availableNumbers = skipBlocking
+            ? totalNumbers // 跳过屏蔽时，所有数字可用
+            : totalNumbers - blockedInRange.length;
 
         if (count > availableNumbers) {
             document.getElementById('result').innerText = '已超出范围，无法生成足够的随机数';
+            skipBlocking = false; // 恢复屏蔽规则
             return;
-        }
-
-        generationCount++;
-        if (generationCount > maxGenerations) {
-            generationCount = 0; // 重置计数
         }
 
         let result = [];
         while (result.length < count) {
             const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
-            if (!blockedInRange.includes(randomNum) && !result.includes(randomNum)) {
+            if (skipBlocking || (!blockedInRange.includes(randomNum) && !result.includes(randomNum))) {
                 result.push(randomNum);
             }
         }
 
+        generationCount++;
+        if (generationCount > maxGenerations) {
+            skipBlocking = false; // 恢复屏蔽规则
+            generationCount = 0; // 重置计数
+        }
+
         result.sort((a, b) => a - b);
-        document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
+        const status = skipBlocking ? '(屏蔽规则已暂停)' : '';
+        document.getElementById('result').innerText = `生成的随机数: ${result.join(', ')} ${status}`;
     }
 
     function getCookie(name) {
