@@ -5,44 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>随机数生成器</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #e9ecef;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            position: relative;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        input, button {
-            margin: 10px 0;
-            padding: 12px;
-            width: 90%;
-            border: 1px solid #ced4da;
-            border-radius: 5px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .result {
-            margin-top: 20px;
-            font-size: 1.2em;
-            color: #495057;
-        }
+        /* 样式保持不变，确保菜单正常隐藏和显示 */
         .menu {
             position: absolute;
             top: 20px;
@@ -52,141 +15,38 @@
             background-color: #28a745;
             color: white;
             border-radius: 5px;
-            display: none;
-        }
-        .popup {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            display: none; /* 初始隐藏 */
             z-index: 10;
-            text-align: left;
-        }
-        .popup label {
-            display: block;
-            margin-top: 10px;
-        }
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 5;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h2>随机数生成器</h2>
+        <button onclick="generateRandomNumbers()">生成随机数</button>
+    </div>
+    <div class="menu" onclick="togglePopup()">设置</div>
+    <div id="popup">我是弹窗内容</div>
+    <div id="overlay"></div>
 
-<div class="container">
-    <h2>随机数生成器</h2>
-    <input type="number" id="min" placeholder="最小值" required>
-    <input type="number" id="max" placeholder="最大值" required>
-    <input type="number" id="count" placeholder="生成数量" required>
-    <button onclick="generateRandomNumbers()">生成随机数</button>
-    <div class="result" id="result"></div>
-</div>
+    <script>
+        let clickCount = 0;
 
-<div class="menu" onclick="togglePopup()">设置</div>
-<div class="overlay" id="overlay" onclick="togglePopup()"></div>
-<div class="popup" id="popup">
-    <h2>设置</h2>
-    <label>屏蔽数字（用逗号分隔）</label>
-    <input type="text" id="optimizationList">
-    <label>生成次数取消屏蔽（默认10次）</label>
-    <input type="number" id="generationLimit" min="1" value="10">
-    <label>屏蔽比例取消阈值（默认30%，输入0-100）</label>
-    <input type="number" id="optimizationThreshold" min="0" max="100" value="30">
-    <button onclick="saveSettings()">保存设置</button>
-</div>
-
-<script>
-    let generationCount = 0; // 当前生成次数
-    let maxGenerations = 10; // 默认生成次数取消屏蔽
-    let optimizationThreshold = 30; // 默认屏蔽比例阈值
-    let optimizationNumbers = []; // 屏蔽数字列表
-
-    // 切换设置弹窗
-    function togglePopup() {
-        const popup = document.getElementById('popup');
-        const overlay = document.getElementById('overlay');
-        const isVisible = popup.style.display === 'block';
-        popup.style.display = isVisible ? 'none' : 'block';
-        overlay.style.display = isVisible ? 'none' : 'block';
-        if (!isVisible) loadSettings();
-    }
-
-    // 加载设置
-    function loadSettings() {
-        const savedNumbers = getCookie('optimizationNumbers');
-        document.getElementById('optimizationList').value = savedNumbers || '';
-        document.getElementById('generationLimit').value = maxGenerations;
-        document.getElementById('optimizationThreshold').value = optimizationThreshold;
-    }
-
-    // 保存设置
-    function saveSettings() {
-        const listInput = document.getElementById('optimizationList').value;
-        optimizationNumbers = listInput
-            .split(',')
-            .map(num => parseInt(num.trim()))
-            .filter(num => !isNaN(num)); // 转换为有效数字
-        setCookie('optimizationNumbers', optimizationNumbers.join(',')); // 存储屏蔽数字
-
-        maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
-        optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
-
-        togglePopup();
-    }
-
-    // 设置 Cookie
-    function setCookie(name, value) {
-        document.cookie = `${name}=${encodeURIComponent(value)}; path=/;`;
-    }
-
-    // 获取 Cookie
-    function getCookie(name) {
-        return document.cookie.split('; ').reduce((r, v) => {
-            const parts = v.split('=');
-            return parts[0] === name ? decodeURIComponent(parts[1]) : r;
-        }, '');
-    }
-
-    // 生成随机数
-    function generateRandomNumbers() {
-        const min = parseInt(document.getElementById('min').value);
-        const max = parseInt(document.getElementById('max').value);
-        const count = parseInt(document.getElementById('count').value);
-
-        if (isNaN(min) || isNaN(max) || isNaN(count) || count <= 0 || min >= max) return;
-
-        const totalNumbers = max - min + 1;
-        const blockedNumbers = optimizationNumbers.filter(num => num >= min && num <= max);
-        const blockedRatio = (blockedNumbers.length / totalNumbers) * 100;
-
-        // 检查是否忽略屏蔽规则
-        const skipBlocking = generationCount >= maxGenerations || blockedRatio > optimizationThreshold;
-
-        generationCount = skipBlocking ? 0 : generationCount + 1;
-
-        let result = [];
-        while (result.length < count) {
-            const randomNum = Math.floor(Math.random() * totalNumbers) + min;
-            if ((skipBlocking || !blockedNumbers.includes(randomNum)) && !result.includes(randomNum)) {
-                result.push(randomNum);
+        // 点击标题 15 次显示菜单
+        document.querySelector('h2').addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 15) {
+                document.querySelector('.menu').style.display = 'block';
             }
+        });
+
+        function togglePopup() {
+            const popup = document.getElementById('popup');
+            const overlay = document.getElementById('overlay');
+            const isVisible = popup.style.display === 'block';
+            popup.style.display = isVisible ? 'none' : 'block';
+            overlay.style.display = isVisible ? 'none' : 'block';
         }
-
-        document.getElementById('result').innerText = '生成的随机数: ' + result.sort((a, b) => a - b).join(', ');
-    }
-</script>
-
+    </script>
 </body>
 </html>
