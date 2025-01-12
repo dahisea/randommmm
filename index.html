@@ -170,25 +170,23 @@
         const settings = getSettings();
         const blockedNumbers = settings.optimizationNumbers;
         const totalNumbers = max - min + 1;
-        const validNumbersCount = totalNumbers - blockedNumbers.filter(num => num >= min && num <= max).length;
 
-        let skipBlocking = false;
+        // 判断屏蔽比例
+        const blockedRatio = (blockedNumbers.filter(num => num >= min && num <= max).length / totalNumbers) * 100;
+        const skipBlocking = blockedRatio > settings.optimizationThreshold;
 
-        // 检查屏蔽比例是否超过阈值
-        if ((blockedNumbers.length / totalNumbers) > (settings.optimizationThreshold / 100)) {
-            skipBlocking = true;
-        }
-
-        // 检查生成次数是否超限
+        // 判断生成次数
         generationCount++;
         if (generationCount > settings.maxGenerations) {
-            skipBlocking = true;
             generationCount = 0; // 重置生成次数
+            skipBlocking = true;
         }
 
         const activeBlockedNumbers = skipBlocking ? [] : blockedNumbers;
 
-        if (count > validNumbersCount && !skipBlocking) {
+        const validNumbersCount = totalNumbers - activeBlockedNumbers.filter(num => num >= min && num <= max).length;
+
+        if (count > validNumbersCount) {
             document.getElementById('result').innerText = '数量超过可用范围';
             return;
         }
