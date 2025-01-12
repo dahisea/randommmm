@@ -4,88 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>随机数生成器</title>
-    <!-- 引入 Materialize CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
     <style>
         body {
+            font-family: Arial, sans-serif;
+            background-color: #e9ecef;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
+            position: relative;
         }
         .container {
+            background: white;
             padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
-        .hidden-menu {
+        input {
+            margin: 10px 0;
+            padding: 12px;
+            width: 90%;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+        }
+        button {
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+        .menu {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
             display: none;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            text-align: left;
+        }
+        .popup input {
+            width: calc(100% - 20px);
+        }
+        .popup label {
+            display: block;
+            margin-top: 10px;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 5;
         }
     </style>
 </head>
-<body class="grey lighten-4">
+<body>
 
-<div class="container white z-depth-2">
-    <h4 class="center-align">随机数生成器</h4>
-    <div class="row">
-        <div class="input-field col s12">
-            <input id="min" type="number">
-            <label for="min">最小值</label>
-        </div>
-        <div class="input-field col s12">
-            <input id="max" type="number">
-            <label for="max">最大值</label>
-        </div>
-        <div class="input-field col s12">
-            <input id="count" type="number">
-            <label for="count">生成数量</label>
-        </div>
-        <div class="col s12 center-align">
-            <button class="btn waves-effect waves-light blue" onclick="generateRandomNumbers()">生成随机数</button>
-        </div>
+<div class="container">
+    <h1 id="title">随机数生成器</h1>
+    <input type="number" id="min" placeholder="最小值">
+    <input type="number" id="max" placeholder="最大值">
+    <input type="number" id="count" placeholder="生成数量">
+    <button onclick="generateRandomNumbers()">生成随机数</button>
+    <div class="result" id="result"></div>
+</div>
+
+<div class="menu" onclick="togglePopup()">反馈</div>
+<div class="overlay" id="overlay" onclick="togglePopup()"></div>
+<div class="popup" id="popup">
+    <h2 id="popup-title">反馈</h2>
+    <div id="feedback-section">
+        <input type="text" id="feedbackInput" placeholder="请输入您的反馈">
+        <button onclick="handleFeedback()">提交</button>
     </div>
-    <div class="result center-align" id="result" style="margin-top: 20px;"></div>
-</div>
-
-<!-- 隐藏的菜单按钮 -->
-<div class="fixed-action-btn hidden-menu">
-    <a class="btn-floating btn-large green">
-        <i class="material-icons">settings</i>
-    </a>
-</div>
-
-<!-- 设置弹窗 -->
-<div id="settingsModal" class="modal">
-    <div class="modal-content">
-        <h4>优化设置</h4>
-        <div class="input-field">
-            <input id="optimizationList" type="text">
-            <label for="optimizationList">优化数字（用逗号分隔）</label>
-        </div>
-        <div class="input-field">
-            <input id="generationLimit" type="number" value="10" disabled>
-            <label for="generationLimit">生成次数取消优化（固定 10）</label>
-        </div>
-        <div class="input-field">
-            <input id="optimizationThreshold" type="number" value="30" disabled>
-            <label for="optimizationThreshold">优化比例取消阈值（固定 30%）</label>
-        </div>
-        <div class="center-align">
-            <button class="btn blue" onclick="saveSettings()">保存设置</button>
-        </div>
+    <div id="settings-section" style="display: none;">
+        <label>优化数字（用逗号分隔）</label>
+        <input type="text" id="optimizationList">
+        <label>生成次数取消优化（默认 10）</label>
+        <input type="number" id="generationLimit" min="1" value="10">
+        <label>优化比例取消阈值（默认 30%，输入 0-100）</label>
+        <input type="number" id="optimizationThreshold" min="0" max="100" value="30">
+        <button onclick="saveSettings()">保存设置</button>
     </div>
 </div>
 
-<!-- 遮罩 -->
-<div class="overlay" id="overlay"></div>
-
-<!-- 引入 Materialize JS 和依赖 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 <script>
     let clickCount = 0;
-    const settingsModal = document.getElementById('settingsModal');
-    const hiddenMenu = document.querySelector('.hidden-menu');
-    const modalInstance = M.Modal.init(settingsModal, { dismissible: false });
 
     const defaultSettings = {
         optimizationNumbers: [],
@@ -94,16 +128,53 @@
         lastInputs: { min: '', max: '', count: '' }
     };
 
-    // 获取设置
+    // 读取Cookie设置
     function getSettings() {
         const cookie = document.cookie.split('; ').find(row => row.startsWith('settings='));
         return cookie ? JSON.parse(decodeURIComponent(cookie.split('=')[1])) : { ...defaultSettings };
     }
+    
+// 保存设置到 Cookie，设置 max-age 为 10 年（接近永久）
+    function saveSettings(settings) {
+        document.cookie = `settings=${encodeURIComponent(JSON.stringify(settings))}; path=/; max-age=315360000`;
+    }
 
-    // 保存设置
-    function saveSettings(settings = {}) {
-        const mergedSettings = { ...getSettings(), ...settings };
-        document.cookie = `settings=${encodeURIComponent(JSON.stringify(mergedSettings))}; path=/;`;
+    function togglePopup() {
+        const popup = document.getElementById('popup');
+        const overlay = document.getElementById('overlay');
+        const isVisible = popup.style.display === 'block';
+        popup.style.display = isVisible ? 'none' : 'block';
+        overlay.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) loadSettings();
+    }
+
+    function handleFeedback() {
+        const input = document.getElementById('feedbackInput').value.trim();
+        if (input === 's') {
+            document.getElementById('popup-title').innerText = '优化设置';
+            document.getElementById('feedback-section').style.display = 'none';
+            document.getElementById('settings-section').style.display = 'block';
+            loadSettings();
+        } else {
+            togglePopup();
+        }
+    }
+
+    function loadSettings() {
+        const settings = getSettings();
+        document.getElementById('optimizationList').value = settings.optimizationNumbers.join(',');
+        document.getElementById('generationLimit').value = settings.maxGenerations;
+        document.getElementById('optimizationThreshold').value = settings.optimizationThreshold;
+    }
+
+    function saveSettingsFromPopup() {
+        const settings = getSettings();
+        const listInput = document.getElementById('optimizationList').value;
+        settings.optimizationNumbers = listInput.split(',').map(num => parseInt(num.trim())).filter(num => !isNaN(num));
+        settings.maxGenerations = parseInt(document.getElementById('generationLimit').value) || 10;
+        settings.optimizationThreshold = parseInt(document.getElementById('optimizationThreshold').value) || 30;
+        saveSettings(settings);
+        togglePopup();
     }
 
     function generateRandomNumbers() {
@@ -112,7 +183,7 @@
         const count = parseInt(document.getElementById('count').value);
 
         if (isNaN(min) || isNaN(max) || isNaN(count) || min >= max || count <= 0) {
-            M.toast({ html: '请输入有效的数值', classes: 'red' });
+            document.getElementById('result').innerText = '请输入有效的数值';
             return;
         }
 
@@ -139,20 +210,20 @@
         document.getElementById('result').innerText = '生成的随机数: ' + result.join(', ');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // 点击标题 15 次显示隐藏按钮
-        document.querySelector('h4').addEventListener('click', () => {
-            clickCount++;
-            if (clickCount === 15) {
-                hiddenMenu.style.display = 'block';
-            }
-        });
+    document.getElementById('title').addEventListener('click', () => {
+        clickCount++;
+        if (clickCount === 15) {
+            document.querySelector('.menu').style.display = 'block';
+        }
+    });
 
+    document.addEventListener('DOMContentLoaded', () => {
         const settings = getSettings();
         document.getElementById('min').value = settings.lastInputs.min || '';
         document.getElementById('max').value = settings.lastInputs.max || '';
         document.getElementById('count').value = settings.lastInputs.count || '';
     });
 </script>
+
 </body>
 </html>
